@@ -1,8 +1,12 @@
 package com.example.universalvideodownloader.ui.player
 
+import android.annotation.SuppressLint
 import android.net.Uri
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
@@ -10,17 +14,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
-import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.ui.PlayerView
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.*
-
-@androidx.annotation.OptIn(markerClass = [androidx.media3.common.util.UnstableApi::class])
 @OptIn(ExperimentalMaterial3Api::class)
+@SuppressLint("UnsafeOptInUsageError")
 @Composable
 fun PlayerScreen(videoUri: String, onBack: () -> Unit = {}) {
     val context = LocalContext.current
