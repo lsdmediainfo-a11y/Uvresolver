@@ -87,6 +87,7 @@ class BrowserViewModel @Inject constructor(
         )
         val request = androidx.work.OneTimeWorkRequestBuilder<com.example.universalvideodownloader.data.download.VideoDownloadWorker>()
             .setInputData(data)
+            .addTag("video_download")
             .build()
         workManager.enqueue(request)
         android.widget.Toast.makeText(context, "İndirme başlatıldı...", android.widget.Toast.LENGTH_SHORT).show()
