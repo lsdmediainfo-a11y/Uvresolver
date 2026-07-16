@@ -12,11 +12,20 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.layout.offset
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BrowserScreen(
+    initialUrl: String? = null,
     viewModel: BrowserViewModel = hiltViewModel()
 ) {
+    LaunchedEffect(initialUrl) {
+        if (initialUrl != null && initialUrl != viewModel.inputUrl.value && initialUrl != viewModel.url.value) {
+            viewModel.loadUrl(initialUrl)
+        }
+    }
     val inputUrl by viewModel.inputUrl.collectAsState()
     val activeUrl by viewModel.url.collectAsState()
     val progress by viewModel.progress.collectAsState()
@@ -29,6 +38,17 @@ fun BrowserScreen(
     val isVideoPlaying = currentSession?.isVideoPlaying == true
     var showBottomSheet by remember { mutableStateOf(false) }
     val context = androidx.compose.ui.platform.LocalContext.current
+
+    // Animasyon
+    val infiniteTransition = rememberInfiniteTransition()
+    val bounceY by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = if (captureCount > 0) -15f else 0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        )
+    )
 
     Scaffold(
         topBar = {
@@ -80,6 +100,9 @@ fun BrowserScreen(
             if (captureCount > 0) {
                 ExtendedFloatingActionButton(
                     onClick = { showBottomSheet = true },
+                    modifier = Modifier.offset(y = bounceY.dp),
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError,
                     icon = { Icon(Icons.Default.KeyboardArrowDown, contentDescription = "İndirme") },
                     text = { 
                         val text = if (isVideoPlaying) "Video Bulundu ($captureCount)" else "Medya Yakalandı ($captureCount)"
