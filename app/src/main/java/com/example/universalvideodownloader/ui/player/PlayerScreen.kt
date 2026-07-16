@@ -15,9 +15,13 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.ui.PlayerView
 
-@OptIn(UnstableApi::class)
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.*
+
+@OptIn(UnstableApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun PlayerScreen(videoUri: String) {
+fun PlayerScreen(videoUri: String, onBack: () -> Unit = {}) {
     val context = LocalContext.current
     
     val exoPlayer = remember {
@@ -42,18 +46,30 @@ fun PlayerScreen(videoUri: String) {
         }
     }
 
-    AndroidView(
-        factory = {
-            PlayerView(context).apply {
-                player = exoPlayer
-                setShowNextButton(false)
-                setShowPreviousButton(false)
-                setShowSubtitleButton(true)
-                setShowFastForwardButton(true)
-                setShowRewindButton(true)
-                // ExoPlayer settings dialog provides Quality, Audio Tracks and Playback Speed natively
-            }
-        },
-        modifier = Modifier.fillMaxSize()
-    )
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Video Oynatıcı") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Geri")
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        AndroidView(
+            factory = {
+                PlayerView(context).apply {
+                    player = exoPlayer
+                    setShowNextButton(false)
+                    setShowPreviousButton(false)
+                    setShowSubtitleButton(true)
+                    setShowFastForwardButton(true)
+                    setShowRewindButton(true)
+                }
+            },
+            modifier = Modifier.fillMaxSize().padding(paddingValues)
+        )
+    }
 }

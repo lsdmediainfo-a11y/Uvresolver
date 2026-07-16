@@ -32,15 +32,17 @@ fun MainScreen() {
     val navController = rememberNavController()
     val items = listOf(Screen.Home, Screen.Browser, Screen.Downloads)
     
-    // Uygulamanın en son hangi tarayıcı URL'sinde kaldığını tutabiliriz
     var lastBrowserUrl by remember { mutableStateOf("https://google.com") }
+    
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination = navBackStackEntry?.destination
+    val showBottomBar = currentDestination?.route?.startsWith("player") != true
 
     Scaffold(
         bottomBar = {
-            NavigationBar {
-                val navBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentDestination = navBackStackEntry?.destination
-                items.forEach { screen ->
+            if (showBottomBar) {
+                NavigationBar {
+                    items.forEach { screen ->
                     val isSelected = currentDestination?.hierarchy?.any { 
                         it.route?.startsWith(screen.route) == true 
                     } == true
@@ -90,7 +92,22 @@ fun MainScreen() {
                 BrowserScreen(initialUrl = lastBrowserUrl)
             }
             composable(Screen.Downloads.route) {
-                DownloadsScreen()
+                DownloadsScreen(
+                    onPlayVideo = { path ->
+                        val encodedPath = URLEncoder.encode(path, StandardCharsets.UTF_8.toString())
+                        navController.navigate("player/$encodedPath")
+                    }
+                )
+            }
+            composable("player/{videoUri}") { backStackEntry ->
+                val encodedUri = backStackEntry.arguments?.getString("videoUri")
+                val decodedUri = encodedUri?.let { URLDecoder.decode(it, StandardCharsets.UTF_8.toString()) }
+                if (decodedUri != null) {
+                    com.example.universalvideodownloader.ui.player.PlayerScreen(
+                        videoUri = decodedUri,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
             }
         }
     }

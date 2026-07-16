@@ -27,7 +27,7 @@ import androidx.core.content.FileProvider
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DownloadsScreen() {
+fun DownloadsScreen(onPlayVideo: (String) -> Unit = {}) {
     val context = LocalContext.current
     var completedFiles by remember { mutableStateOf<List<File>>(emptyList()) }
     var activeTasks by remember { mutableStateOf<List<WorkInfo>>(emptyList()) }
@@ -93,7 +93,7 @@ fun DownloadsScreen() {
                             completedFiles = completedFiles.filter { it.absolutePath != file.absolutePath }
                         },
                         onPlay = {
-                            android.widget.Toast.makeText(context, "Dahili Video Oynatıcı (Adım 4) çok yakında eklenecek!", android.widget.Toast.LENGTH_SHORT).show()
+                            onPlayVideo("file://${file.absolutePath}")
                         }
                     )
                 }
