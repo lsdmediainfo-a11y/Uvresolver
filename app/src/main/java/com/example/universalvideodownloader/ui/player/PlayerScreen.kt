@@ -27,7 +27,7 @@ fun PlayerScreen(videoUri: String, onBack: () -> Unit = {}) {
     
     val exoPlayer = remember {
         val trackSelector = DefaultTrackSelector(context).apply {
-            setParameters(buildUponParameters().setMaxVideoSizeSd())
+            setParameters(buildUponParameters().setMaxVideoSizeSd().build())
         }
         
         ExoPlayer.Builder(context)
