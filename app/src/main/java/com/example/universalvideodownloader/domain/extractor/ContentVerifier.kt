@@ -16,7 +16,9 @@ class ContentVerifier {
             connection.connectTimeout = 5000
             connection.readTimeout = 5000
             
-            candidate.requestContext.extraHeaders.forEach { (key, value) -> connection.setRequestProperty(key, value) }
+            for ((key, value) in candidate.requestContext.extraHeaders) {
+                connection.setRequestProperty(key, value)
+            }
             
             var responseCode = connection.responseCode
             var contentType = connection.contentType
@@ -26,7 +28,9 @@ class ContentVerifier {
                 connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
                 connection.setRequestProperty("Range", "bytes=0-4095")
-                candidate.requestContext.extraHeaders.forEach { (key, value) -> connection.setRequestProperty(key, value) }
+                for ((key, value) in candidate.requestContext.extraHeaders) {
+                    connection.setRequestProperty(key, value)
+                }
                 connection.connectTimeout = 5000
                 connection.readTimeout = 5000
                 

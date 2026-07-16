@@ -215,16 +215,4 @@ class JsonApiResolver : MediaResolver {
     override suspend fun resolve(context: ResolveContext): ResolverOutcome = ResolverOutcome.NotMatched
 }
 
-// 9. SegmentClusterResolver
-class SegmentClusterResolver : MediaResolver {
-    override val id = "SegmentClusterResolver"
-    override val priority = 20
-    override suspend fun resolve(context: ResolveContext): ResolverOutcome = ResolverOutcome.NotMatched
-}
 
-// 10. BlobSourceResolver
-class BlobSourceResolver : MediaResolver {
-    override val id = "BlobSourceResolver"
-    override val priority = 10
-    override suspend fun resolve(context: ResolveContext): ResolverOutcome = ResolverOutcome.NotMatched
-}
