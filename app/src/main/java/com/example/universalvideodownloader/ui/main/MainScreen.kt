@@ -3,7 +3,7 @@ package com.example.universalvideodownloader.ui.main
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,7 +24,7 @@ import java.nio.charset.StandardCharsets
 
 sealed class Screen(val route: String, val title: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
     object Home : Screen("home", "Ana Sayfa", Icons.Default.Home)
-    object Browser : Screen("browser", "Tarayıcı", Icons.Default.Language)
+    object Browser : Screen("browser", "Tarayıcı", Icons.Default.Search)
     object Downloads : Screen("downloads", "İndirilenler", Icons.Default.List)
 }
 

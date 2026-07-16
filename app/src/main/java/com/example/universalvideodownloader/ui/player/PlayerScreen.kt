@@ -1,7 +1,6 @@
 package com.example.universalvideodownloader.ui.player
 
 import android.net.Uri
-import androidx.annotation.OptIn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
