@@ -17,6 +17,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.universalvideodownloader.ui.browser.BrowserScreen
 import com.example.universalvideodownloader.ui.downloads.DownloadsScreen
 import com.example.universalvideodownloader.ui.home.HomeScreen
+import com.example.universalvideodownloader.ui.player.PlayerScreen
 import java.net.URLDecoder
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -42,29 +43,29 @@ fun MainScreen() {
         bottomBar = {
             if (showBottomBar) {
                 NavigationBar {
-                    items.forEach { screen ->
-                    val isSelected = currentDestination?.hierarchy?.any { 
-                        it.route?.startsWith(screen.route) == true 
-                    } == true
-                    
-                    NavigationBarItem(
-                        icon = { Icon(screen.icon, contentDescription = null) },
-                        label = { Text(screen.title) },
-                        selected = isSelected,
-                        onClick = {
-                            navController.navigate(screen.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+                    for (screen in items) {
+                        val isSelected = currentDestination?.hierarchy?.any { 
+                            it.route?.startsWith(screen.route) == true 
+                        } == true
+                        
+                        NavigationBarItem(
+                            icon = { Icon(screen.icon, contentDescription = null) },
+                            label = { Text(screen.title) },
+                            selected = isSelected,
+                            onClick = {
+                                navController.navigate(screen.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
-                                launchSingleTop = true
-                                restoreState = true
                             }
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
-    }
     ) { innerPadding ->
         NavHost(
             navController = navController,
@@ -86,25 +87,21 @@ fun MainScreen() {
                 )
             }
             composable(Screen.Browser.route) {
-                // Burada BrowserScreen, URL değişikliğini dinleyebilir.
-                // Basitlik açısından BrowserScreen kendi view model'ını (Hilt ViewModel) kullanır.
-                // Eğer lastBrowserUrl değiştiyse onu yüklemeyi BrowserScreen içinde trigger edebiliriz.
-                // Bunu viewModel üzerinden veya LaunchedEffect ile yapabiliriz.
                 BrowserScreen(initialUrl = lastBrowserUrl)
             }
             composable(Screen.Downloads.route) {
                 DownloadsScreen(
                     onPlayVideo = { path ->
-                        val encodedPath = URLEncoder.encode(path, StandardCharsets.UTF_8.toString())
+                        val encodedPath = URLEncoder.encode(path, StandardCharsets.UTF_8.name())
                         navController.navigate("player/$encodedPath")
                     }
                 )
             }
             composable("player/{videoUri}") { backStackEntry ->
                 val encodedUri = backStackEntry.arguments?.getString("videoUri")
-                val decodedUri = encodedUri?.let { URLDecoder.decode(it, StandardCharsets.UTF_8.toString()) }
-                if (decodedUri != null) {
-                    com.example.universalvideodownloader.ui.player.PlayerScreen(
+                if (encodedUri != null) {
+                    val decodedUri = URLDecoder.decode(encodedUri, StandardCharsets.UTF_8.name())
+                    PlayerScreen(
                         videoUri = decodedUri,
                         onBack = { navController.popBackStack() }
                     )
