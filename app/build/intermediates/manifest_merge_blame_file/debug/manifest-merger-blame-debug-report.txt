@@ -49,12 +49,12 @@
 28-->[androidx.core:core:1.12.0] /root/.gradle/caches/transforms-3/4a817082f1e4904691cba2bcb8047389/transformed/core-1.12.0/AndroidManifest.xml:28:18-86
 29        android:debuggable="true"
 30        android:extractNativeLibs="false"
-31        android:icon="@mipmap/ic_launcher"
-31-->/root/UniversalVideoDownloader/app/src/main/AndroidManifest.xml:13:9-43
+31        android:icon="@drawable/ic_launcher"
+31-->/root/UniversalVideoDownloader/app/src/main/AndroidManifest.xml:13:9-45
 32        android:label="@string/app_name"
 32-->/root/UniversalVideoDownloader/app/src/main/AndroidManifest.xml:14:9-41
-33        android:roundIcon="@mipmap/ic_launcher_round"
-33-->/root/UniversalVideoDownloader/app/src/main/AndroidManifest.xml:15:9-54
+33        android:roundIcon="@drawable/ic_launcher"
+33-->/root/UniversalVideoDownloader/app/src/main/AndroidManifest.xml:15:9-50
 34        android:supportsRtl="true"
 34-->/root/UniversalVideoDownloader/app/src/main/AndroidManifest.xml:16:9-35
 35        android:theme="@style/Theme.UniversalVideoDownloader"

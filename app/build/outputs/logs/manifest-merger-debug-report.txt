@@ -182,11 +182,11 @@ MERGED from [androidx.startup:startup-runtime:1.1.1] /root/.gradle/caches/transf
 	android:label
 		ADDED from /root/UniversalVideoDownloader/app/src/main/AndroidManifest.xml:14:9-41
 	android:roundIcon
-		ADDED from /root/UniversalVideoDownloader/app/src/main/AndroidManifest.xml:15:9-54
+		ADDED from /root/UniversalVideoDownloader/app/src/main/AndroidManifest.xml:15:9-50
 	tools:targetApi
 		ADDED from /root/UniversalVideoDownloader/app/src/main/AndroidManifest.xml:19:9-29
 	android:icon
-		ADDED from /root/UniversalVideoDownloader/app/src/main/AndroidManifest.xml:13:9-43
+		ADDED from /root/UniversalVideoDownloader/app/src/main/AndroidManifest.xml:13:9-45
 	android:allowBackup
 		ADDED from /root/UniversalVideoDownloader/app/src/main/AndroidManifest.xml:12:9-35
 	android:theme
