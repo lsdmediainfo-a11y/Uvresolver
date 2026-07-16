@@ -64,6 +64,7 @@ fun MainScreen() {
                 }
             }
         }
+    }
     ) { innerPadding ->
         NavHost(
             navController = navController,
