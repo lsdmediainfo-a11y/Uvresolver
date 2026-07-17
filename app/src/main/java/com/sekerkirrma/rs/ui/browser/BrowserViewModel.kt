@@ -32,8 +32,6 @@ class BrowserViewModel @Inject constructor(
     private val _currentUrl = MutableStateFlow("https://google.com")
     val currentUrl: StateFlow<String> = _currentUrl.asStateFlow()
 
-    private val _detectedVideoUrl = MutableStateFlow<String?>(null)
-    val detectedVideoUrl: StateFlow<String?> = _detectedVideoUrl.asStateFlow()
 
     private val _isParsing = MutableStateFlow(false)
     val isParsing: StateFlow<Boolean> = _isParsing.asStateFlow()
