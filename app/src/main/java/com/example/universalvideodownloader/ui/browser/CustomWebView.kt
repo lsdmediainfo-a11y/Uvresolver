@@ -94,11 +94,15 @@ fun CustomWebView(
                                       
                         if (isMedia) {
                             Log.d("CustomWebView", "NATIVE_INTERCEPT -> Discovered Media URL: $url")
+                            val hdrs = request.requestHeaders
+                            val jsonHeaders = org.json.JSONObject()
+                            hdrs?.forEach { (k, v) -> jsonHeaders.put(k, v) }
+                            
                             val event = com.example.universalvideodownloader.ui.browser.capture.CapturedNetworkEvent(
                                 url = url,
                                 type = "media",
                                 method = request.method,
-                                headers = org.json.JSONObject(request.requestHeaders as Map<*, *>? ?: emptyMap<String, String>()).toString(),
+                                headers = jsonHeaders.toString(),
                                 source = "native_intercept"
                             )
                             onEventCaptured(event)
