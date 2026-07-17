@@ -97,14 +97,28 @@ class BrowserViewModel @Inject constructor(
     }
 
     fun parseAndShowQualities(event: CapturedNetworkEvent, context: android.content.Context) {
-        if (!event.url.contains(".m3u8")) {
-            startDownload(event, event.url, context)
-            return
-        }
-        
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val fallbackVariants = listOf(HlsVariant(event, event.url, "Asıl Kalite (Bilinmiyor)", null))
+            
+            if (!event.url.contains(".m3u8") || event.url.startsWith("blob:")) {
+                _qualityOptions.value = fallbackVariants
+                return@launch
+            }
+            
             try {
-                val request = Request.Builder().url(event.url).build()
+                val requestBuilder = Request.Builder().url(event.url)
+                try {
+                    val headerJson = org.json.JSONObject(event.headers)
+                    val keys = headerJson.keys()
+                    while (keys.hasNext()) {
+                        val key = keys.next()
+                        requestBuilder.addHeader(key, headerJson.getString(key))
+                    }
+                } catch (e: Exception) {
+                    requestBuilder.addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64 AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36)")
+                }
+
+                val request = requestBuilder.build()
                 val response = okHttpClient.newCall(request).execute()
                 val body = response.body?.string() ?: ""
                 
@@ -127,17 +141,13 @@ class BrowserViewModel @Inject constructor(
                             currentBandwidth = null
                         }
                     }
-                    _qualityOptions.value = variants
+                    _qualityOptions.value = if (variants.isNotEmpty()) variants else fallbackVariants
                 } else {
-                    withContext(kotlinx.coroutines.Dispatchers.Main) {
-                        startDownload(event, event.url, context)
-                    }
+                    _qualityOptions.value = fallbackVariants
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    startDownload(event, event.url, context)
-                }
+                _qualityOptions.value = fallbackVariants
             }
         }
     }
