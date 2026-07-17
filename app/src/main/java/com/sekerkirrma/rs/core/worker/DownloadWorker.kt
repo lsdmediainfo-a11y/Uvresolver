@@ -59,10 +59,9 @@ class DownloadWorker @AssistedInject constructor(
 
             var finalPath = ""
 
-            if (formatId == "direct") {
-                Log.d("DownloadWorker", "Using direct OkHttpDownloader fallback")
-                val ext = if (url.contains(".m3u8")) "m3u8" else "mp4" // Ideally m3u8 should be downloaded piece by piece, but OkHttpDownloader will just download the text file unless we parse it. Wait, m3u8 direct download is just the playlist. But let's follow the fallback logic.
-                finalPath = File(downloadDir, "$safeTitle.$ext").absolutePath
+            if (formatId == "direct" && !url.contains(".m3u8")) {
+                Log.d("DownloadWorker", "Using direct OkHttpDownloader fallback for standard file")
+                finalPath = File(downloadDir, "$safeTitle.mp4").absolutePath
                 
                 OkHttpDownloader.downloadFile(
                     url = url,
@@ -76,24 +75,57 @@ class DownloadWorker @AssistedInject constructor(
                     }
                 )
             } else {
-                Log.d("DownloadWorker", "Using YoutubeDL engine")
-                val request = YoutubeDLRequest(url)
-                request.addOption("-f", formatId)
+                Log.d("DownloadWorker", "Using YoutubeDL engine for parsing/muxing")
+                var targetUrl = url
+                val request = YoutubeDLRequest(targetUrl)
                 
-                val outputPath = File(downloadDir, "$safeTitle.%(ext)s").absolutePath
-                request.addOption("-o", outputPath)
-                request.addOption("--concurrent-fragments", "4")
-                request.addOption("--merge-output-format", "mp4")
+                if (formatId.startsWith("m3u8_custom|")) {
+                    // Extract the specific stream URL
+                    targetUrl = formatId.substringAfter("|")
+                    // Modify the request to use the exact stream URL
+                    // Note: YoutubeDLRequest's url is private, so we must instantiate a new one
+                    val m3u8Request = YoutubeDLRequest(targetUrl)
+                    Log.d("DownloadWorker", "Custom m3u8 stream detected, delegating to yt-dlp native HLS downloader for: $targetUrl")
+                    
+                    val outputPath = File(downloadDir, "$safeTitle.%(ext)s").absolutePath
+                    m3u8Request.addOption("-o", outputPath)
+                    m3u8Request.addOption("--concurrent-fragments", "4")
+                    m3u8Request.addOption("--merge-output-format", "mp4")
 
-                headerMap.forEach { (k, v) ->
-                    request.addOption("--add-header", "$k:$v")
-                }
+                    headerMap.forEach { (k, v) ->
+                        m3u8Request.addOption("--add-header", "$k:$v")
+                    }
 
-                YoutubeDL.getInstance().execute(request, downloadId) { progress, etaInSeconds, line ->
-                    val currentProgress = progress.toFloat()
-                    Log.d("DownloadWorker", "Progress: $currentProgress% ETA: $etaInSeconds")
-                    kotlinx.coroutines.runBlocking {
-                        downloadDao.updateProgress(downloadId, currentProgress, 0L, 0L)
+                    YoutubeDL.getInstance().execute(m3u8Request, downloadId) { progress, etaInSeconds, line ->
+                        val currentProgress = progress.toFloat()
+                        Log.d("DownloadWorker", "Progress: $currentProgress% ETA: $etaInSeconds")
+                        kotlinx.coroutines.runBlocking {
+                            downloadDao.updateProgress(downloadId, currentProgress, 0L, 0L)
+                        }
+                    }
+                } else {
+                    if (formatId != "direct") {
+                        request.addOption("-f", formatId)
+                    } else {
+                        // For direct m3u8, yt-dlp will automatically download and merge the HLS stream
+                        Log.d("DownloadWorker", "Direct m3u8 detected, delegating to yt-dlp native HLS downloader")
+                    }
+                    
+                    val outputPath = File(downloadDir, "$safeTitle.%(ext)s").absolutePath
+                    request.addOption("-o", outputPath)
+                    request.addOption("--concurrent-fragments", "4")
+                    request.addOption("--merge-output-format", "mp4")
+
+                    headerMap.forEach { (k, v) ->
+                        request.addOption("--add-header", "$k:$v")
+                    }
+
+                    YoutubeDL.getInstance().execute(request, downloadId) { progress, etaInSeconds, line ->
+                        val currentProgress = progress.toFloat()
+                        Log.d("DownloadWorker", "Progress: $currentProgress% ETA: $etaInSeconds")
+                        kotlinx.coroutines.runBlocking {
+                            downloadDao.updateProgress(downloadId, currentProgress, 0L, 0L)
+                        }
                     }
                 }
                 

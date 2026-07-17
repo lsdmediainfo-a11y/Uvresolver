@@ -40,9 +40,13 @@ object M3u8Parser {
                 }
             } else if (!line.startsWith("#") && line.isNotEmpty()) {
                 // This is a stream URL. It could be relative or absolute.
+                val streamUrl = if (line.startsWith("http")) line else {
+                    val base = url.substringBeforeLast("/")
+                    "$base/$line"
+                }
                 formats.add(
                     VideoFormatItem(
-                        formatId = "m3u8_${currentResolution}", // Unique ID
+                        formatId = "m3u8_custom|$streamUrl", // Store URL here!
                         resolution = currentResolution,
                         ext = "mp4", // usually we mux to mp4
                         fileSizeStr = "~", // Hard to know from m3u8
