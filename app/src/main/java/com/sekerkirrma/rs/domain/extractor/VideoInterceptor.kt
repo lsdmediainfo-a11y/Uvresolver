@@ -42,9 +42,9 @@ class VideoInterceptor : WebViewClient() {
             Log.d("AuraSniffer", "Yakalalanan Medya: $url")
             val headers = request.requestHeaders ?: emptyMap()
             
-            // Extract Cookies and Page URL without calling WebView methods on background thread
+            // Extract Page URL
             val pageUrl = request.requestHeaders?.get("Referer") ?: url
-            val cookies = CookieManager.getInstance().getCookie(url) ?: ""
+            val cookies = "" // Fetched on UI thread later to prevent WebView crash
             
             // Fire and forget
             ExtractorDelegate.onMediaDetected(url, pageUrl, headers, cookies)

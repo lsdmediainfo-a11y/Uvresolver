@@ -103,7 +103,9 @@ fun BrowserScreen(
                     onClick = {
                         if (detectedVideoUrl != null) {
                             showBottomSheet = true
-                            viewModel.parseVideoUrl(detectedVideoUrl!!.url, detectedVideoUrl)
+                            val liveCookies = android.webkit.CookieManager.getInstance().getCookie(detectedVideoUrl!!.pageUrl) ?: ""
+                            val updatedSignal = detectedVideoUrl!!.copy(cookies = liveCookies)
+                            viewModel.parseVideoUrl(detectedVideoUrl!!.url, updatedSignal)
                         } else {
                             Toast.makeText(context, "Lütfen önce videoyu oynatın", Toast.LENGTH_SHORT).show()
                         }
@@ -198,8 +200,9 @@ fun BrowserScreen(
                                                 finalHeaders[k] = v
                                             }
                                         }
-                                        if (!detectedVideoUrl?.cookies.isNullOrEmpty()) {
-                                            finalHeaders["Cookie"] = detectedVideoUrl!!.cookies
+                                        val liveCookies = android.webkit.CookieManager.getInstance().getCookie(detectedVideoUrl?.pageUrl ?: currentUrl) ?: ""
+                                        if (liveCookies.isNotEmpty()) {
+                                            finalHeaders["Cookie"] = liveCookies
                                         }
 
                                         viewModel.startDownload(
