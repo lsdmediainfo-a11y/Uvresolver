@@ -59,7 +59,13 @@ fun DownloadsScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                 }
                 items(activeTasks) { task ->
-                    ActiveDownloadItem(task)
+                    ActiveDownloadItem(
+                        task = task,
+                        onCancel = {
+                            androidx.work.WorkManager.getInstance(context).cancelWorkById(java.util.UUID.fromString(task.id))
+                            viewModel.cancelDownload(task.id)
+                        }
+                    )
                 }
                 item { Spacer(modifier = Modifier.height(16.dp)) }
             }
@@ -99,7 +105,7 @@ fun DownloadsScreen(
 }
 
 @Composable
-fun ActiveDownloadItem(task: DownloadEntity) {
+fun ActiveDownloadItem(task: DownloadEntity, onCancel: () -> Unit) {
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
@@ -111,13 +117,16 @@ fun ActiveDownloadItem(task: DownloadEntity) {
         ) {
             CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
             Spacer(modifier = Modifier.width(16.dp))
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(task.outputName, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
                     text = if (task.status == "DOWNLOADING") "İşleniyor" else "Sırada",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
                 )
+            }
+            IconButton(onClick = onCancel) {
+                Icon(Icons.Default.Delete, contentDescription = "İptal Et", tint = MaterialTheme.colorScheme.error)
             }
         }
     }

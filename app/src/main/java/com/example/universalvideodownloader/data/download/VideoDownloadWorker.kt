@@ -86,6 +86,13 @@ class VideoDownloadWorker @AssistedInject constructor(
             downloadDao.updateStatus(workerId, "COMPLETED", System.currentTimeMillis())
             Result.success()
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) {
+                Log.d("DownloadWorker", "İndirme iptal edildi.")
+                downloadDao.updateStatus(workerId, "FAILED", System.currentTimeMillis())
+                if (outputFile.exists()) outputFile.delete()
+                if (finalFile.exists()) finalFile.delete()
+                throw e
+            }
             Log.e("DownloadWorker", "Bağlantı kesintisi veya hata", e)
             downloadDao.updateStatus(workerId, "FAILED", System.currentTimeMillis())
             Result.retry()
