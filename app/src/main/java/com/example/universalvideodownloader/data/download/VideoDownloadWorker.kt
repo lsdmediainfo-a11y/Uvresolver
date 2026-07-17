@@ -46,13 +46,14 @@ class VideoDownloadWorker @AssistedInject constructor(
         
         Log.d("DownloadWorker", "OkHttp İndirme Başlıyor: $videoUrl")
         
+        val baseFileName = "video_${System.currentTimeMillis()}"
+        val partFileName = "$baseFileName.mp4.part"
+        val finalFileName = "$baseFileName.mp4"
+        val outputFile = File(applicationContext.getExternalFilesDir(null), partFileName)
+        val finalFile = File(applicationContext.getExternalFilesDir(null), finalFileName)
+
         try {
             downloadDao.updateStatus(workerId, "DOWNLOADING", System.currentTimeMillis())
-            val baseFileName = "video_${System.currentTimeMillis()}"
-            val partFileName = "$baseFileName.mp4.part"
-            val finalFileName = "$baseFileName.mp4"
-            val outputFile = File(applicationContext.getExternalFilesDir(null), partFileName)
-            val finalFile = File(applicationContext.getExternalFilesDir(null), finalFileName)
             
             val headers = mapOf(
                 "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64 AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36)",
