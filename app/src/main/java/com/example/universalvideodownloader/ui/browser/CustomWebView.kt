@@ -98,7 +98,7 @@ fun CustomWebView(
                                 url = url,
                                 type = "media",
                                 method = request.method,
-                                headers = "{}",
+                                headers = org.json.JSONObject(request.requestHeaders as Map<*, *>? ?: emptyMap<String, String>()).toString(),
                                 source = "native_intercept"
                             )
                             onEventCaptured(event)

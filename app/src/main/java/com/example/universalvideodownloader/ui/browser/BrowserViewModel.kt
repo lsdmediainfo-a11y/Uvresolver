@@ -179,7 +179,7 @@ class BrowserViewModel @Inject constructor(
                 sourceUrl = variantUrl,
                 outputName = "video_${System.currentTimeMillis()}.mp4",
                 outputUri = null,
-                mediaType = MediaType.VIDEO,
+                mediaType = MediaType.DIRECT_FILE,
                 status = "DOWNLOADING",
                 progress = 0,
                 downloadedBytes = 0L,
