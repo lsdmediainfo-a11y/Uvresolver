@@ -17,16 +17,16 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.net.URL
 
+import com.example.universalvideodownloader.data.local.DownloadDao
+import com.example.universalvideodownloader.data.local.DownloadEntity
+import com.example.universalvideodownloader.domain.extractor.MediaType
+
 data class HlsVariant(
     val originalEvent: CapturedNetworkEvent,
     val url: String,
     val resolution: String?,
     val bandwidth: Int?
 )
-
-import com.example.universalvideodownloader.data.local.DownloadDao
-import com.example.universalvideodownloader.data.local.DownloadEntity
-import com.example.universalvideodownloader.domain.extractor.MediaType
 
 @HiltViewModel
 class BrowserViewModel @Inject constructor(
