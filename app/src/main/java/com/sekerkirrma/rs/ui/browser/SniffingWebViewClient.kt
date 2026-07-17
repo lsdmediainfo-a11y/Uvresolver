@@ -5,7 +5,7 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import com.sekerkirrma.rs.domain.sniffer.AdBlocker
-import com.sekerkirrma.rs.domain.sniffer.VideoSniffer
+import com.sekerkirrma.rs.domain.sniffer.UniversalInterceptor
 
 class SniffingWebViewClient(
     private val onVideoDetected: (String, Map<String, String>) -> Unit
@@ -23,15 +23,16 @@ class SniffingWebViewClient(
             }
 
             // Check if the URL corresponds to a video stream
-            if (VideoSniffer.isVideoUrl(url)) {
-                val headers = request.requestHeaders ?: emptyMap()
+            val headers = request.requestHeaders ?: emptyMap()
+            if (UniversalInterceptor.isMediaRequest(url, headers)) {
                 onVideoDetected(url, headers)
             }
         }
         return super.shouldInterceptRequest(view, request)
     }
 
-    // You could also intercept based on the page finished loading,
-    // or inject javascript to find <video> tags, but shouldInterceptRequest
-    // is the most robust for catching network traffic.
+    override fun onPageFinished(view: WebView?, url: String?) {
+        super.onPageFinished(view, url)
+        view?.evaluateJavascript(UniversalInterceptor.getInjectorPayload(), null)
+    }
 }

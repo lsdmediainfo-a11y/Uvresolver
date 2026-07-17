@@ -46,7 +46,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import android.webkit.JavascriptInterface
 import androidx.hilt.navigation.compose.hiltViewModel
+
+class VideoJavascriptInterface(private val onVideoFound: (String) -> Unit) {
+    @JavascriptInterface
+    fun onVideoFound(url: String) {
+        onVideoFound(url)
+    }
+}
 
 @SuppressLint("SetJavaScriptEnabled")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -123,12 +131,15 @@ fun BrowserScreen(
                         webChromeClient = WebChromeClient()
                         webViewClient = SniffingWebViewClient(
                             onVideoDetected = { url, headers ->
-                                // This is called from a background thread inside WebViewClient,
-                                // but StateFlow handles thread safety. However, updating ViewModels
-                                // is generally fine since StateFlow emits on whatever thread, but
-                                // compose collects it properly.
                                 viewModel.onVideoDetected(url, headers)
                             }
+                        )
+                        addJavascriptInterface(
+                            VideoJavascriptInterface { url ->
+                                // Trigger video detected from JS injection
+                                viewModel.onVideoDetected(url, emptyMap())
+                            },
+                            "AndroidSniffer"
                         )
                         loadUrl(currentUrl)
                     }
