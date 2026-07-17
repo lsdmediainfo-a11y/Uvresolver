@@ -4,6 +4,7 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import com.sekerkirrma.rs.domain.sniffer.AdBlocker
 import com.sekerkirrma.rs.domain.sniffer.VideoSniffer
 
 class SniffingWebViewClient(
@@ -16,6 +17,11 @@ class SniffingWebViewClient(
     ): WebResourceResponse? {
         val url = request?.url?.toString()
         if (url != null) {
+            // Block ads to prevent popups and false stream detections
+            if (AdBlocker.isAd(url)) {
+                return AdBlocker.createEmptyResource()
+            }
+
             // Check if the URL corresponds to a video stream
             if (VideoSniffer.isVideoUrl(url)) {
                 val headers = request.requestHeaders ?: emptyMap()
