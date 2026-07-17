@@ -7,7 +7,7 @@ import android.webkit.WebViewClient
 import com.sekerkirrma.rs.domain.sniffer.VideoSniffer
 
 class SniffingWebViewClient(
-    private val onVideoDetected: (String) -> Unit
+    private val onVideoDetected: (String, Map<String, String>) -> Unit
 ) : WebViewClient() {
 
     override fun shouldInterceptRequest(
@@ -18,7 +18,8 @@ class SniffingWebViewClient(
         if (url != null) {
             // Check if the URL corresponds to a video stream
             if (VideoSniffer.isVideoUrl(url)) {
-                onVideoDetected(url)
+                val headers = request.requestHeaders ?: emptyMap()
+                onVideoDetected(url, headers)
             }
         }
         return super.shouldInterceptRequest(view, request)

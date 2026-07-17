@@ -94,8 +94,11 @@ fun BrowserScreen(
                     onClick = {
                         showBottomSheet = true
                         // Priority: Sniffed direct video URL > Current Page URL
-                        val urlToParse = detectedVideoUrl ?: currentUrl
-                        viewModel.parseVideoUrl(urlToParse)
+                        if (detectedVideoUrl != null) {
+                            viewModel.parseVideoUrl(detectedVideoUrl!!, viewModel.lastDetectedHeaders)
+                        } else {
+                            viewModel.parseVideoUrl(currentUrl)
+                        }
                     },
                     containerColor = if (detectedVideoUrl != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer
                 ) {
