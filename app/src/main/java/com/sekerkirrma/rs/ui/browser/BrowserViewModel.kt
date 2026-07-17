@@ -3,7 +3,6 @@ package com.sekerkirrma.rs.ui.browser
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sekerkirrma.rs.domain.model.VideoFormatItem
-import com.sekerkirrma.rs.domain.sniffer.M3u8Parser
 import com.yausername.youtubedl_android.YoutubeDL
 import com.yausername.youtubedl_android.YoutubeDLRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -121,15 +120,6 @@ class BrowserViewModel @Inject constructor(
                             Log.e("BrowserViewModel", "YoutubeDL parsing failed, will try fallback", e)
                         }
 
-                        // Fallback to Aniyomi-style OkHttp parsing if it's an m3u8 link and YoutubeDL failed
-                        if (formats.isEmpty() && url.contains(".m3u8")) {
-                            try {
-                                formats = M3u8Parser.parse(url, headers)
-                            } catch (e: Exception) {
-                                Log.e("BrowserViewModel", "M3u8 fallback parsing failed", e)
-                            }
-                        }
-                        
                         formats
                     } ?: emptyList() // If timeout happens, it returns null, we make it emptyList
 
