@@ -85,7 +85,12 @@ class BrowserViewModel @Inject constructor(
                 withContext(Dispatchers.IO) {
                     var parsedFormats = withTimeoutOrNull(10000) {
                         val request = YoutubeDLRequest(url)
-                        media?.headers?.forEach { (k, v) -> request.addOption("--add-header", "$k:$v") }
+                        media?.headers?.forEach { (k, v) -> 
+                            val safeKey = k.lowercase()
+                            if (safeKey == "referer" || safeKey == "user-agent" || safeKey == "origin" || safeKey == "authorization" || safeKey.startsWith("x-")) {
+                                request.addOption("--add-header", "$k:$v") 
+                            }
+                        }
                         if (media?.cookies?.isNotEmpty() == true) {
                             request.addOption("--add-header", "Cookie:${media.cookies}")
                         }

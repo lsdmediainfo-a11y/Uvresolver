@@ -191,7 +191,13 @@ fun BrowserScreen(
                                     }
                                     Button(onClick = {
                                         val urlToDownload = detectedVideoUrl?.url ?: currentUrl
-                                        val finalHeaders = detectedVideoUrl?.headers?.toMutableMap() ?: mutableMapOf()
+                                        val finalHeaders = mutableMapOf<String, String>()
+                                        detectedVideoUrl?.headers?.forEach { (k, v) ->
+                                            val safeKey = k.lowercase()
+                                            if (safeKey == "referer" || safeKey == "user-agent" || safeKey == "origin" || safeKey == "authorization" || safeKey.startsWith("x-")) {
+                                                finalHeaders[k] = v
+                                            }
+                                        }
                                         if (!detectedVideoUrl?.cookies.isNullOrEmpty()) {
                                             finalHeaders["Cookie"] = detectedVideoUrl!!.cookies
                                         }
