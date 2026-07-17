@@ -44,8 +44,8 @@ class VideoDownloadWorker @AssistedInject constructor(
         
         try {
             val baseFileName = "video_${System.currentTimeMillis()}"
-            val partFileName = "$baseFileName.${if(type == "HLS") "ts" else "mp4"}.part"
-            val finalFileName = "$baseFileName.${if(type == "HLS") "ts" else "mp4"}"
+            val partFileName = "$baseFileName.mp4.part"
+            val finalFileName = "$baseFileName.mp4"
             val outputFile = File(applicationContext.getExternalFilesDir(null), partFileName)
             val finalFile = File(applicationContext.getExternalFilesDir(null), finalFileName)
             
@@ -85,62 +85,50 @@ class VideoDownloadWorker @AssistedInject constructor(
     }
 
     private fun downloadHls(playlistUrl: String, outputFile: File, headers: Map<String, String>) {
-        var currentUrl = playlistUrl
-        var requestBuilder = Request.Builder().url(currentUrl)
-        headers.forEach { (k, v) -> requestBuilder.header(k, v) }
-        var response = okHttpClient.newCall(requestBuilder.build()).execute()
-        
-        if (!response.isSuccessful) throw Exception("HLS Playlist fetch failed")
-        
-        var body = response.body?.string() ?: return
+        // FFmpeg komutu için Header'ları formatla
+        var headerString = ""
+        headers.forEach { (k, v) ->
+            headerString += "$k: $v\r\n"
+        }
         
         // Eğer bu bir Master Playlist ise (kalite seçenekleri barındırıyorsa), ilk varyantı seç
-        if (body.contains("#EXT-X-STREAM-INF")) {
-            val lines = body.lines()
-            for (line in lines) {
-                if (!line.startsWith("#") && line.trim().isNotEmpty()) {
-                    currentUrl = if (line.startsWith("http")) line else java.net.URL(java.net.URL(currentUrl), line).toString()
-                    break
-                }
-            }
-            // Seçilen varyantı tekrar indir
-            requestBuilder = Request.Builder().url(currentUrl)
+        var targetUrl = playlistUrl
+        try {
+            val requestBuilder = Request.Builder().url(playlistUrl)
             headers.forEach { (k, v) -> requestBuilder.header(k, v) }
-            response = okHttpClient.newCall(requestBuilder.build()).execute()
-            if (!response.isSuccessful) throw Exception("HLS Variant Playlist fetch failed")
-            body = response.body?.string() ?: return
-        }
-
-        val lines = body.lines()
-        
-        FileOutputStream(outputFile, true).use { output ->
-            for (line in lines) {
-                if (line.trim().isEmpty() || line.startsWith("#")) continue
-                
-                val tsUrl = if (line.startsWith("http")) line else java.net.URL(java.net.URL(currentUrl), line).toString()
-                
-                var retries = 0
-                var success = false
-                while (retries < 3 && !success) {
-                    try {
-                        val tsReq = Request.Builder().url(tsUrl)
-                        headers.forEach { (k, v) -> tsReq.header(k, v) }
-                        val tsResp = okHttpClient.newCall(tsReq.build()).execute()
-                        if (tsResp.isSuccessful) {
-                            tsResp.body?.byteStream()?.use { input ->
-                                input.copyTo(output)
-                            }
-                            success = true
-                        } else {
-                            throw Exception("TS fetch failed: ${tsResp.code}")
+            val response = okHttpClient.newCall(requestBuilder.build()).execute()
+            if (response.isSuccessful) {
+                val body = response.body?.string() ?: ""
+                if (body.contains("#EXT-X-STREAM-INF")) {
+                    val lines = body.lines()
+                    for (line in lines) {
+                        if (!line.startsWith("#") && line.trim().isNotEmpty()) {
+                            targetUrl = if (line.startsWith("http")) line else java.net.URL(java.net.URL(playlistUrl), line).toString()
+                            break
                         }
-                    } catch (e: Exception) {
-                        retries++
-                        Thread.sleep(1000)
-                        if (retries >= 3) throw Exception("TS piece failed after 3 retries: $tsUrl", e)
                     }
                 }
             }
+        } catch (e: Exception) {
+            Log.e("DownloadWorker", "Master playlist fetch error, falling back to original URL", e)
+        }
+
+        Log.d("DownloadWorker", "FFmpegKit HLS İndirme Başlıyor: $targetUrl")
+        
+        val command = if (headerString.isNotEmpty()) {
+            arrayOf("-headers", headerString, "-i", targetUrl, "-c", "copy", "-bsf:a", "aac_adtstoasc", "-y", outputFile.absolutePath)
+        } else {
+            arrayOf("-i", targetUrl, "-c", "copy", "-bsf:a", "aac_adtstoasc", "-y", outputFile.absolutePath)
+        }
+
+        val session = com.arthenica.ffmpegkit.FFmpegKit.executeWithArguments(command)
+        
+        if (com.arthenica.ffmpegkit.ReturnCode.isSuccess(session.returnCode)) {
+            Log.d("DownloadWorker", "FFmpegKit HLS İndirme Başarılı")
+        } else {
+            val failCause = session.failStackTrace
+            val logs = session.logsAsString
+            throw Exception("FFmpegKit HLS İndirme Başarısız: $logs\n$failCause")
         }
     }
 
