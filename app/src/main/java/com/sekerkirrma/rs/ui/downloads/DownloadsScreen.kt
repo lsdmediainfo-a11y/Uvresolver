@@ -102,7 +102,7 @@ fun DownloadItemCard(download: DownloadEntity) {
 
             if (download.status == "DOWNLOADING" || download.progress > 0) {
                 LinearProgressIndicator(
-                    progress = { download.progress / 100f },
+                    progress = download.progress / 100f,
                     modifier = Modifier.fillMaxWidth(),
                     color = MaterialTheme.colorScheme.primary,
                     trackColor = MaterialTheme.colorScheme.surfaceVariant,

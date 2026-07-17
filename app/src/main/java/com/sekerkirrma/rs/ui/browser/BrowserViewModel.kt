@@ -22,9 +22,6 @@ import com.sekerkirrma.rs.data.local.entity.DownloadEntity
 import com.sekerkirrma.rs.core.worker.DownloadWorker
 import java.util.UUID
 import javax.inject.Inject
-import kotlinx.coroutines.withContext
-import android.util.Log
-import javax.inject.Inject
 
 @HiltViewModel
 class BrowserViewModel @Inject constructor(
