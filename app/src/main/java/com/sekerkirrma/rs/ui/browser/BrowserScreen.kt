@@ -95,18 +95,17 @@ fun BrowserScreen(
         },
         floatingActionButton = {
             AnimatedVisibility(
-                visible = currentUrl.isNotBlank(), // Always visible like Seal to try downloading from current page
+                visible = true, // Always show FAB
                 enter = fadeIn(),
                 exit = fadeOut()
             ) {
                 FloatingActionButton(
                     onClick = {
-                        showBottomSheet = true
-                        // Priority: Sniffed direct video URL > Current Page URL
                         if (detectedVideoUrl != null) {
+                            showBottomSheet = true
                             viewModel.parseVideoUrl(detectedVideoUrl!!, viewModel.lastDetectedHeaders)
                         } else {
-                            viewModel.parseVideoUrl(currentUrl)
+                            Toast.makeText(context, "Lütfen önce videoyu oynatın", Toast.LENGTH_SHORT).show()
                         }
                     },
                     containerColor = if (detectedVideoUrl != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer

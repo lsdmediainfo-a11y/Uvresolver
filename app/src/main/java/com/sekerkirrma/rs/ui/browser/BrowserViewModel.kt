@@ -79,72 +79,60 @@ class BrowserViewModel @Inject constructor(
 
             try {
                 withContext(Dispatchers.IO) {
-                    val isDirectLink = url.contains(".mp4", ignoreCase = true) || 
-                                     url.contains(".m3u8", ignoreCase = true) || 
-                                     url.contains(".mpd", ignoreCase = true)
-                    
-                    var parsedFormats = if (isDirectLink) {
-                        Log.d("BrowserViewModel", "Direct link detected, skipping YoutubeDL parsing.")
-                        emptyList<VideoFormatItem>() // Force fallback below
-                    } else {
-                        withTimeoutOrNull(10000) {
-                            val request = YoutubeDLRequest(url)
-                            headers.forEach { (k, v) -> request.addOption("--add-header", "$k:$v") }
-                            
-                            var formats = emptyList<VideoFormatItem>()
-                            try {
-                                val info = YoutubeDL.getInstance().getInfo(request)
-                                formats = info.formats?.mapNotNull { format ->
-                                    if (format.formatId == null) return@mapNotNull null
-                                    
-                                    val resolution = if (format.width != 0 && format.height != 0) {
-                                        "${format.width}x${format.height}"
-                                    } else if (format.formatNote != null) {
-                                        format.formatNote ?: "Unknown"
-                                    } else {
-                                        "Unknown"
-                                    }
+                    var parsedFormats = withTimeoutOrNull(10000) {
+                        val request = YoutubeDLRequest(url)
+                        // Add headers so YoutubeDL can bypass referer checks
+                        headers.forEach { (k, v) -> request.addOption("--add-header", "$k:$v") }
+                        
+                        var formats = emptyList<VideoFormatItem>()
+                        try {
+                            val info = YoutubeDL.getInstance().getInfo(request)
+                            formats = info.formats?.mapNotNull { format ->
+                                if (format.formatId == null) return@mapNotNull null
+                                
+                                val resolution = if (format.width != 0 && format.height != 0) {
+                                    "${format.width}x${format.height}"
+                                } else if (format.formatNote != null) {
+                                    format.formatNote ?: "Unknown"
+                                } else {
+                                    "Unknown"
+                                }
 
-                                    val ext = format.ext ?: "unknown"
-                                    val sizeStr = if (format.fileSize > 0) {
-                                        "${format.fileSize / (1024 * 1024)} MB"
-                                    } else {
-                                        "~"
-                                    }
-                                    
-                                    val isAudioOnly = format.vcodec == "none"
+                                val ext = format.ext ?: "unknown"
+                                val sizeStr = if (format.fileSize > 0) {
+                                    "${format.fileSize / (1024 * 1024)} MB"
+                                } else {
+                                    "~"
+                                }
+                                
+                                val isAudioOnly = format.vcodec == "none"
 
-                                    VideoFormatItem(
-                                        formatId = format.formatId!!,
-                                        resolution = resolution,
-                                        ext = ext,
-                                        fileSizeStr = sizeStr,
-                                        fps = format.fps.takeIf { it > 0 }?.toDouble(),
-                                        isAudioOnly = isAudioOnly
-                                    )
-                                }?.distinctBy { it.resolution + it.ext } ?: emptyList()
-                            } catch (e: Exception) {
-                                Log.e("BrowserViewModel", "YoutubeDL parsing failed", e)
-                            }
+                                VideoFormatItem(
+                                    formatId = format.formatId!!,
+                                    resolution = resolution,
+                                    ext = ext,
+                                    fileSizeStr = sizeStr,
+                                    fps = format.fps.takeIf { it > 0 }?.toDouble(),
+                                    isAudioOnly = isAudioOnly
+                                )
+                            }?.distinctBy { it.resolution + it.ext } ?: emptyList()
+                        } catch (e: Exception) {
+                            Log.e("BrowserViewModel", "YoutubeDL parsing failed, will try fallback", e)
+                        }
 
-                            formats
-                        } ?: emptyList()
-                    }
+                        formats
+                    } ?: emptyList() // If timeout happens, it returns null, we make it emptyList
 
-                    // Direct Link Fallback
+                    // Direct Link Fallback (If yt-dlp failed or timed out)
                     if (parsedFormats.isEmpty()) {
-                        if (isDirectLink) {
-                            val ext = when {
-                                url.contains(".m3u8", ignoreCase = true) -> "m3u8"
-                                url.contains(".mpd", ignoreCase = true) -> "mpd"
-                                else -> "mp4"
-                            }
+                        if (url.contains(".mp4") || url.contains(".m3u8")) {
+                            Log.d("BrowserViewModel", "Direct link detected, falling back to direct download")
                             parsedFormats = listOf(
                                 VideoFormatItem(
                                     formatId = "direct",
                                     resolution = "Direct Stream",
-                                    ext = ext,
-                                    fileSizeStr = "Auto",
+                                    ext = if (url.contains(".m3u8")) "m3u8" else "mp4",
+                                    fileSizeStr = "~",
                                     fps = null,
                                     isAudioOnly = false
                                 )
@@ -157,7 +145,8 @@ class BrowserViewModel @Inject constructor(
                     _videoFormats.value = parsedFormats
                 }
             } catch (e: Exception) {
-                _parseError.value = e.message
+                Log.e("BrowserViewModel", "Error parsing url: $url", e)
+                _parseError.value = e.message ?: "Unknown error occurred"
             } finally {
                 _isParsing.value = false
             }

@@ -4,6 +4,7 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.util.Log
 import com.sekerkirrma.rs.domain.sniffer.AdBlocker
 
 /**
@@ -37,6 +38,7 @@ class VideoInterceptor : WebViewClient() {
 
         // Pure Network Sniffing based on Regex
         if (MEDIA_REGEX.matches(lowerUrl) || lowerUrl.contains(".m3u8") || lowerUrl.contains(".mp4") || lowerUrl.contains(".mpd")) {
+            Log.d("AuraSniffer", "Yakalalanan Medya: $url")
             val headers = request.requestHeaders ?: emptyMap()
             // Fire and forget
             ExtractorDelegate.onMediaDetected(url, headers)
