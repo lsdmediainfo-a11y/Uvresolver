@@ -47,7 +47,7 @@ class VideoDownloadWorker @AssistedInject constructor(
         Log.d("DownloadWorker", "OkHttp İndirme Başlıyor: $videoUrl")
         
         try {
-            downloadDao.updateStatus(workerId, "DOWNLOADING")
+            downloadDao.updateStatus(workerId, "DOWNLOADING", System.currentTimeMillis())
             val baseFileName = "video_${System.currentTimeMillis()}"
             val partFileName = "$baseFileName.mp4.part"
             val finalFileName = "$baseFileName.mp4"
@@ -64,7 +64,7 @@ class VideoDownloadWorker @AssistedInject constructor(
                 downloadHls(videoUrl, outputFile, headers)
             } else if (type == "DASH") {
                 Log.d("DownloadWorker", "DASH henüz tam desteklenmiyor, atlanıyor.")
-                downloadDao.updateStatus(workerId, "FAILED")
+                downloadDao.updateStatus(workerId, "FAILED", System.currentTimeMillis())
                 return@withContext Result.failure()
             } else {
             
@@ -83,11 +83,11 @@ class VideoDownloadWorker @AssistedInject constructor(
             }
             
             Log.d("DownloadWorker", "İndirme Tamamlandı: ${finalFile.absolutePath}")
-            downloadDao.updateStatus(workerId, "COMPLETED")
+            downloadDao.updateStatus(workerId, "COMPLETED", System.currentTimeMillis())
             Result.success()
         } catch (e: Exception) {
             Log.e("DownloadWorker", "Bağlantı kesintisi veya hata", e)
-            downloadDao.updateStatus(workerId, "FAILED")
+            downloadDao.updateStatus(workerId, "FAILED", System.currentTimeMillis())
             Result.retry()
         }
     }

@@ -22,5 +22,5 @@ interface DownloadDao {
     suspend fun updateDownload(download: DownloadEntity)
     
     @Query("UPDATE downloads SET status = :status, updatedAt = :updatedAt WHERE id = :id")
-    suspend fun updateStatus(id: String, status: String, updatedAt: Long = System.currentTimeMillis())
+    suspend fun updateStatus(id: String, status: String, updatedAt: Long)
 }

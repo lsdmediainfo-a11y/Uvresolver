@@ -20,14 +20,14 @@ class DownloadsViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
         
     fun pauseDownload(id: String) {
-        viewModelScope.launch { downloadDao.updateStatus(id, "PAUSED") }
+        viewModelScope.launch { downloadDao.updateStatus(id, "PAUSED", System.currentTimeMillis()) }
     }
     
     fun resumeDownload(id: String) {
-        viewModelScope.launch { downloadDao.updateStatus(id, "DOWNLOADING") }
+        viewModelScope.launch { downloadDao.updateStatus(id, "DOWNLOADING", System.currentTimeMillis()) }
     }
     
     fun cancelDownload(id: String) {
-        viewModelScope.launch { downloadDao.updateStatus(id, "FAILED") }
+        viewModelScope.launch { downloadDao.updateStatus(id, "FAILED", System.currentTimeMillis()) }
     }
 }
