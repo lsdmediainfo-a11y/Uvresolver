@@ -94,7 +94,7 @@ class BrowserViewModel @Inject constructor() : ViewModel() {
                             resolution = resolution!!,
                             ext = ext,
                             fileSizeStr = sizeStr,
-                            fps = format.fps.takeIf { it > 0.0 },
+                            fps = format.fps.takeIf { it > 0 }?.toDouble(),
                             isAudioOnly = isAudioOnly
                         )
                     }?.distinctBy { it.resolution + it.ext } ?: emptyList()
