@@ -17,35 +17,21 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.work.WorkInfo
-import androidx.work.WorkManager
-import kotlinx.coroutines.delay
 import java.io.File
-import android.content.Intent
-import androidx.core.content.FileProvider
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.universalvideodownloader.data.local.DownloadEntity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DownloadsScreen(onPlayVideo: (String) -> Unit = {}) {
+fun DownloadsScreen(
+    onPlayVideo: (String) -> Unit = {},
+    viewModel: DownloadsViewModel = hiltViewModel()
+) {
     val context = LocalContext.current
-    var completedFiles by remember { mutableStateOf<List<File>>(emptyList()) }
-    var activeTasks by remember { mutableStateOf<List<WorkInfo>>(emptyList()) }
-
-    // Dosyaları ve aktif işleri düzenli olarak yenile
-    LaunchedEffect(Unit) {
-        val workManager = WorkManager.getInstance(context)
-        while (true) {
-            val dir = context.getExternalFilesDir(null)
-            if (dir != null && dir.exists()) {
-                completedFiles = dir.listFiles()?.filter { it.name.endsWith(".mp4") || it.name.endsWith(".ts") }?.sortedByDescending { it.lastModified() } ?: emptyList()
-            }
-            
-            val infos = workManager.getWorkInfosByTag("video_download").get()
-            activeTasks = infos.filter { it.state == WorkInfo.State.RUNNING || it.state == WorkInfo.State.ENQUEUED }
-            
-            delay(2000)
-        }
-    }
+    val allDownloads by viewModel.allDownloads.collectAsState()
+    
+    val activeTasks = allDownloads.filter { it.status == "DOWNLOADING" || it.status == "PENDING" }
+    val completedTasks = allDownloads.filter { it.status == "COMPLETED" }
 
     Scaffold(
         topBar = {
@@ -78,21 +64,24 @@ fun DownloadsScreen(onPlayVideo: (String) -> Unit = {}) {
                 item { Spacer(modifier = Modifier.height(16.dp)) }
             }
 
-            if (completedFiles.isNotEmpty()) {
+            if (completedTasks.isNotEmpty()) {
                 item {
                     Text("Tamamlanan Videolar", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.height(8.dp))
                 }
-                items(completedFiles) { file ->
+                items(completedTasks) { entity ->
+                    val file = File(context.getExternalFilesDir(null), entity.outputName)
                     CompletedDownloadItem(
-                        file = file,
+                        entity = entity,
+                        fileExists = file.exists(),
                         onDelete = {
                             if (file.exists()) file.delete()
-                            // Zorunlu güncelleme için (2 saniye beklemeden)
-                            completedFiles = completedFiles.filter { it.absolutePath != file.absolutePath }
+                            viewModel.cancelDownload(entity.id)
                         },
                         onPlay = {
-                            onPlayVideo("file://${file.absolutePath}")
+                            if (file.exists()) {
+                                onPlayVideo("file://${file.absolutePath}")
+                            }
                         }
                     )
                 }
@@ -110,7 +99,7 @@ fun DownloadsScreen(onPlayVideo: (String) -> Unit = {}) {
 }
 
 @Composable
-fun ActiveDownloadItem(task: WorkInfo) {
+fun ActiveDownloadItem(task: DownloadEntity) {
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
@@ -123,9 +112,9 @@ fun ActiveDownloadItem(task: WorkInfo) {
             CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
             Spacer(modifier = Modifier.width(16.dp))
             Column {
-                Text("Video İndiriliyor...", fontWeight = FontWeight.Bold)
+                Text(task.outputName, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
-                    text = if (task.state == WorkInfo.State.RUNNING) "İşleniyor" else "Sırada",
+                    text = if (task.status == "DOWNLOADING") "İşleniyor" else "Sırada",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
                 )
@@ -135,14 +124,14 @@ fun ActiveDownloadItem(task: WorkInfo) {
 }
 
 @Composable
-fun CompletedDownloadItem(file: File, onDelete: () -> Unit, onPlay: () -> Unit) {
+fun CompletedDownloadItem(entity: DownloadEntity, fileExists: Boolean, onDelete: () -> Unit, onPlay: () -> Unit) {
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onPlay() }
+            .clickable(enabled = fileExists) { onPlay() }
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
@@ -151,23 +140,30 @@ fun CompletedDownloadItem(file: File, onDelete: () -> Unit, onPlay: () -> Unit) 
             Box(
                 modifier = Modifier
                     .size(50.dp)
-                    .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(8.dp)),
+                    .background(
+                        if (fileExists) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer, 
+                        RoundedCornerShape(8.dp)
+                    ),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.PlayArrow, contentDescription = "Oynat", tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                Icon(
+                    Icons.Default.PlayArrow, 
+                    contentDescription = "Oynat", 
+                    tint = if (fileExists) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer
+                )
             }
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = file.name,
+                    text = entity.outputName,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = "${file.length() / (1024 * 1024)} MB",
+                    text = if (fileExists) "Tamamlandı" else "Dosya Bulunamadı (Silinmiş)",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (fileExists) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error
                 )
             }
             IconButton(onClick = onDelete) {

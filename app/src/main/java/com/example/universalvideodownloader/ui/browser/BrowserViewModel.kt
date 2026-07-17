@@ -24,9 +24,14 @@ data class HlsVariant(
     val bandwidth: Int?
 )
 
+import com.example.universalvideodownloader.data.local.DownloadDao
+import com.example.universalvideodownloader.data.local.DownloadEntity
+import com.example.universalvideodownloader.domain.extractor.MediaType
+
 @HiltViewModel
 class BrowserViewModel @Inject constructor(
-    private val captureManager: CaptureManager
+    private val captureManager: CaptureManager,
+    private val downloadDao: DownloadDao
 ) : ViewModel() {
 
     private val _url = MutableStateFlow("https://google.com")
@@ -167,7 +172,29 @@ class BrowserViewModel @Inject constructor(
             .setInputData(data)
             .addTag("video_download")
             .build()
-        workManager.enqueue(request)
-        android.widget.Toast.makeText(context, "İndirme başlatıldı...", android.widget.Toast.LENGTH_SHORT).show()
+
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val entity = DownloadEntity(
+                id = request.id.toString(),
+                sourceUrl = variantUrl,
+                outputName = "video_${System.currentTimeMillis()}.mp4",
+                outputUri = null,
+                mediaType = MediaType.VIDEO,
+                status = "DOWNLOADING",
+                progress = 0,
+                downloadedBytes = 0L,
+                totalBytes = 0L,
+                speed = 0L,
+                errorCode = null,
+                createdAt = System.currentTimeMillis(),
+                updatedAt = System.currentTimeMillis()
+            )
+            downloadDao.insertDownload(entity)
+            
+            withContext(kotlinx.coroutines.Dispatchers.Main) {
+                workManager.enqueue(request)
+                android.widget.Toast.makeText(context, "İndirme başlatıldı...", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 }

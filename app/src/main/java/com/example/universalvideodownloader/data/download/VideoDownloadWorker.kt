@@ -23,18 +23,22 @@ import java.nio.channels.Channels
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
+import com.example.universalvideodownloader.data.local.DownloadDao
+
 @HiltWorker
 class VideoDownloadWorker @AssistedInject constructor(
     @Assisted appContext: Context,
     @Assisted workerParams: WorkerParameters,
     private val cronetEngine: CronetEngine,
-    private val okHttpClient: OkHttpClient
+    private val okHttpClient: OkHttpClient,
+    private val downloadDao: DownloadDao
 ) : CoroutineWorker(appContext, workerParams) {
 
     // Bölüm 18: İlk sürümde OkHttp kullanılacak. İleride Cronet'e (fallback OkHttp) geçirilecek.
     private val client = OkHttpClient.Builder().build()
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
+        val workerId = this@VideoDownloadWorker.id.toString()
         // WorkManager 10KB Data Limit Koruması: Büyük JSON'lar yerine Database'den SessionID ile Context okunur
         val candidateId = inputData.getString("CANDIDATE_ID") ?: return@withContext Result.failure()
         val videoUrl = inputData.getString("VIDEO_URL") ?: return@withContext Result.failure()
@@ -43,6 +47,7 @@ class VideoDownloadWorker @AssistedInject constructor(
         Log.d("DownloadWorker", "OkHttp İndirme Başlıyor: $videoUrl")
         
         try {
+            downloadDao.updateStatus(workerId, "DOWNLOADING")
             val baseFileName = "video_${System.currentTimeMillis()}"
             val partFileName = "$baseFileName.mp4.part"
             val finalFileName = "$baseFileName.mp4"
@@ -59,6 +64,7 @@ class VideoDownloadWorker @AssistedInject constructor(
                 downloadHls(videoUrl, outputFile, headers)
             } else if (type == "DASH") {
                 Log.d("DownloadWorker", "DASH henüz tam desteklenmiyor, atlanıyor.")
+                downloadDao.updateStatus(workerId, "FAILED")
                 return@withContext Result.failure()
             } else {
             
@@ -77,9 +83,11 @@ class VideoDownloadWorker @AssistedInject constructor(
             }
             
             Log.d("DownloadWorker", "İndirme Tamamlandı: ${finalFile.absolutePath}")
+            downloadDao.updateStatus(workerId, "COMPLETED")
             Result.success()
         } catch (e: Exception) {
             Log.e("DownloadWorker", "Bağlantı kesintisi veya hata", e)
+            downloadDao.updateStatus(workerId, "FAILED")
             Result.retry()
         }
     }
