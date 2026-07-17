@@ -1,5 +1,7 @@
 package com.sekerkirrma.rs.ui
 
+import com.sekerkirrma.rs.ui.browser.BrowserScreen
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -51,7 +53,7 @@ fun MainScreen() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Browser.route) {
-                DummyScreen(title = "Browser Screen")
+                BrowserScreen()
             }
             composable(Screen.Downloads.route) {
                 DummyScreen(title = "Downloads Screen")
