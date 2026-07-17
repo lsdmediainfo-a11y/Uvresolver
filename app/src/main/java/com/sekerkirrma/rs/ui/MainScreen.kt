@@ -1,6 +1,7 @@
 package com.sekerkirrma.rs.ui
 
 import com.sekerkirrma.rs.ui.browser.BrowserScreen
+import com.sekerkirrma.rs.ui.downloads.DownloadsScreen
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -56,7 +57,7 @@ fun MainScreen() {
                 BrowserScreen()
             }
             composable(Screen.Downloads.route) {
-                DummyScreen(title = "Downloads Screen")
+                DownloadsScreen()
             }
             composable(Screen.Settings.route) {
                 DummyScreen(title = "Settings Screen")

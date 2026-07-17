@@ -190,7 +190,15 @@ fun BrowserScreen(
                                         }
                                     }
                                     Button(onClick = {
-                                        Toast.makeText(context, "Selected ${format.formatId} (Phase 4)", Toast.LENGTH_SHORT).show()
+                                        val urlToDownload = detectedVideoUrl ?: currentUrl
+                                        viewModel.startDownload(
+                                            workManager = androidx.work.WorkManager.getInstance(context),
+                                            url = urlToDownload,
+                                            formatId = format.formatId,
+                                            title = "Video_${System.currentTimeMillis()}",
+                                            headers = if (detectedVideoUrl != null) viewModel.lastDetectedHeaders else emptyMap()
+                                        )
+                                        Toast.makeText(context, "Download started", Toast.LENGTH_SHORT).show()
                                         showBottomSheet = false
                                     }) {
                                         Text("Download")

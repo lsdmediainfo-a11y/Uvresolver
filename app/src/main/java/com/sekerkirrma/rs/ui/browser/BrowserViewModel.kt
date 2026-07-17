@@ -14,10 +14,22 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import android.util.Log
+import androidx.work.Data
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import com.sekerkirrma.rs.data.local.dao.DownloadDao
+import com.sekerkirrma.rs.data.local.entity.DownloadEntity
+import com.sekerkirrma.rs.core.worker.DownloadWorker
+import java.util.UUID
+import javax.inject.Inject
+import kotlinx.coroutines.withContext
+import android.util.Log
 import javax.inject.Inject
 
 @HiltViewModel
-class BrowserViewModel @Inject constructor() : ViewModel() {
+class BrowserViewModel @Inject constructor(
+    private val downloadDao: DownloadDao
+) : ViewModel() {
 
     private val _currentUrl = MutableStateFlow("https://google.com")
     val currentUrl: StateFlow<String> = _currentUrl.asStateFlow()
@@ -132,6 +144,38 @@ class BrowserViewModel @Inject constructor() : ViewModel() {
             } finally {
                 _isParsing.value = false
             }
+        }
+    }
+
+    fun startDownload(workManager: WorkManager, url: String, formatId: String, title: String, headers: Map<String, String>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val downloadId = UUID.randomUUID().toString()
+            
+            // Insert PENDING status into Room immediately
+            val entity = DownloadEntity(
+                id = downloadId,
+                url = url,
+                title = title,
+                formatId = formatId,
+                status = "PENDING"
+            )
+            downloadDao.insertDownload(entity)
+
+            // Enqueue Worker
+            val inputData = Data.Builder()
+                .putString("id", downloadId)
+                .putString("url", url)
+                .putString("formatId", formatId)
+                .putString("title", title)
+                .putStringArray("headerKeys", headers.keys.toTypedArray())
+                .putStringArray("headerValues", headers.values.toTypedArray())
+                .build()
+
+            val request = OneTimeWorkRequestBuilder<DownloadWorker>()
+                .setInputData(inputData)
+                .build()
+
+            workManager.enqueue(request)
         }
     }
 }
