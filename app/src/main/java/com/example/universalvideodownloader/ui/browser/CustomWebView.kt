@@ -88,9 +88,23 @@ fun CustomWebView(
                             return WebResourceResponse("text/plain", "UTF-8", java.io.ByteArrayInputStream(ByteArray(0)))
                         }
                         
-                        val isMedia = url.contains(".m3u8") || url.contains(".mp4") || 
-                                      url.contains(".ts") || url.contains(".m4s") || 
-                                      url.contains(".mpd")
+                        val urlLower = url.lowercase()
+                        
+                        // Rule 1: Segment ve Chunk Filtreleme
+                        val isChunk = urlLower.contains("sec2") || 
+                                      urlLower.contains("frag=") || 
+                                      urlLower.contains("segment=") || 
+                                      urlLower.contains(".ts") || 
+                                      urlLower.contains(".m4s")
+                                      
+                        if (isChunk) {
+                            return null // Tamamen görmezden gel (ignore)
+                        }
+                        
+                        // Rule 2: Sadece Master (Ana) Playlistleri Yakalama
+                        val isMedia = urlLower.contains(".m3u8") || 
+                                      urlLower.contains(".mpd") || 
+                                      urlLower.contains(".mp4")
                                       
                         if (isMedia) {
                             Log.d("CustomWebView", "NATIVE_INTERCEPT -> Discovered Media URL: $url")

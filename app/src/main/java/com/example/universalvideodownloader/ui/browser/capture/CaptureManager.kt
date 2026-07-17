@@ -43,7 +43,11 @@ class CaptureManager @Inject constructor() {
             
             // Scoring
             var score = 0
-            if (urlLower.contains(".m3u8") || urlLower.contains(".mpd") || urlLower.contains(".mp4")) score += 50
+            if (urlLower.contains("master") || urlLower.contains("index")) {
+                score += 100 // High score for master playlists (Rule 2)
+            } else if (urlLower.contains(".m3u8") || urlLower.contains(".mpd") || urlLower.contains(".mp4")) {
+                score += 50
+            }
             if (event.source == "play_event") score += 40
             
             event.score = score
