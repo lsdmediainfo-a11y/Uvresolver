@@ -1,5 +1,6 @@
 package com.sekerkirrma.rs.domain.extractor
 
+import android.webkit.CookieManager
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
@@ -40,8 +41,13 @@ class VideoInterceptor : WebViewClient() {
         if (MEDIA_REGEX.matches(lowerUrl) || lowerUrl.contains(".m3u8") || lowerUrl.contains(".mp4") || lowerUrl.contains(".mpd")) {
             Log.d("AuraSniffer", "Yakalalanan Medya: $url")
             val headers = request.requestHeaders ?: emptyMap()
+            
+            // Extract Cookies and Page URL
+            val pageUrl = view?.url ?: ""
+            val cookies = CookieManager.getInstance().getCookie(pageUrl) ?: ""
+            
             // Fire and forget
-            ExtractorDelegate.onMediaDetected(url, headers)
+            ExtractorDelegate.onMediaDetected(url, pageUrl, headers, cookies)
         }
 
         return super.shouldInterceptRequest(view, request)

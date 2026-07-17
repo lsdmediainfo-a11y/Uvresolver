@@ -3,6 +3,7 @@ package com.sekerkirrma.rs.ui.browser
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sekerkirrma.rs.domain.model.VideoFormatItem
+import com.sekerkirrma.rs.domain.extractor.ExtractorDelegate.MediaDetectedSignal
 import com.yausername.youtubedl_android.YoutubeDL
 import com.yausername.youtubedl_android.YoutubeDLRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -40,11 +41,14 @@ class BrowserViewModel @Inject constructor(
     private val _videoFormats = MutableStateFlow<List<VideoFormatItem>>(emptyList())
     val videoFormats: StateFlow<List<VideoFormatItem>> = _videoFormats.asStateFlow()
     
+    private val _detectedVideoUrl = MutableStateFlow<MediaDetectedSignal?>(null)
+    val detectedVideoUrl: StateFlow<MediaDetectedSignal?> = _detectedVideoUrl.asStateFlow()
+
+    var lastDetectedMedia: MediaDetectedSignal? = null
+        private set
+
     private val _parseError = MutableStateFlow<String?>(null)
     val parseError: StateFlow<String?> = _parseError.asStateFlow()
-
-    var lastDetectedHeaders: Map<String, String> = emptyMap()
-        private set
 
     fun updateCurrentUrl(url: String) {
         // Simple URL validation/formatting
@@ -57,21 +61,21 @@ class BrowserViewModel @Inject constructor(
         clearDetectedVideo()
     }
 
-    fun onVideoDetected(url: String, headers: Map<String, String>) {
-        if (_detectedVideoUrl.value == null || url.contains(".m3u8")) {
-            _detectedVideoUrl.value = url
-            lastDetectedHeaders = headers
+    fun onVideoDetected(signal: MediaDetectedSignal) {
+        if (_detectedVideoUrl.value == null || signal.url.contains(".m3u8")) {
+            _detectedVideoUrl.value = signal
+            lastDetectedMedia = signal
         }
     }
 
     fun clearDetectedVideo() {
         _detectedVideoUrl.value = null
-        lastDetectedHeaders = emptyMap()
+        lastDetectedMedia = null
         _videoFormats.value = emptyList()
         _parseError.value = null
     }
 
-    fun parseVideoUrl(url: String, headers: Map<String, String> = emptyMap()) {
+    fun parseVideoUrl(url: String, media: MediaDetectedSignal? = null) {
         viewModelScope.launch {
             _isParsing.value = true
             _parseError.value = null
@@ -81,8 +85,10 @@ class BrowserViewModel @Inject constructor(
                 withContext(Dispatchers.IO) {
                     var parsedFormats = withTimeoutOrNull(10000) {
                         val request = YoutubeDLRequest(url)
-                        // Add headers so YoutubeDL can bypass referer checks
-                        headers.forEach { (k, v) -> request.addOption("--add-header", "$k:$v") }
+                        media?.headers?.forEach { (k, v) -> request.addOption("--add-header", "$k:$v") }
+                        if (media?.cookies?.isNotEmpty() == true) {
+                            request.addOption("--add-header", "Cookie:${media.cookies}")
+                        }
                         
                         var formats = emptyList<VideoFormatItem>()
                         try {

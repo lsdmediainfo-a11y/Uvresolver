@@ -10,12 +10,17 @@ import kotlinx.coroutines.flow.asSharedFlow
  */
 object ExtractorDelegate {
     
-    data class MediaDetectedSignal(val url: String, val headers: Map<String, String>)
+    data class MediaDetectedSignal(
+        val url: String, 
+        val pageUrl: String,
+        val headers: Map<String, String>,
+        val cookies: String
+    )
 
     private val _mediaFlow = MutableSharedFlow<MediaDetectedSignal>(extraBufferCapacity = 1)
     val mediaFlow: SharedFlow<MediaDetectedSignal> = _mediaFlow.asSharedFlow()
 
-    fun onMediaDetected(url: String, headers: Map<String, String> = emptyMap()) {
-        _mediaFlow.tryEmit(MediaDetectedSignal(url, headers))
+    fun onMediaDetected(url: String, pageUrl: String, headers: Map<String, String> = emptyMap(), cookies: String = "") {
+        _mediaFlow.tryEmit(MediaDetectedSignal(url, pageUrl, headers, cookies))
     }
 }

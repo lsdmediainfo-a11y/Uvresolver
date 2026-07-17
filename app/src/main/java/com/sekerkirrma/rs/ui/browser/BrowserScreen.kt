@@ -66,7 +66,7 @@ fun BrowserScreen(
 
     LaunchedEffect(Unit) {
         ExtractorDelegate.mediaFlow.collect { signal ->
-            viewModel.onVideoDetected(signal.url, signal.headers)
+            viewModel.onVideoDetected(signal)
         }
     }
 
@@ -103,7 +103,7 @@ fun BrowserScreen(
                     onClick = {
                         if (detectedVideoUrl != null) {
                             showBottomSheet = true
-                            viewModel.parseVideoUrl(detectedVideoUrl!!, viewModel.lastDetectedHeaders)
+                            viewModel.parseVideoUrl(detectedVideoUrl!!.url, detectedVideoUrl)
                         } else {
                             Toast.makeText(context, "Lütfen önce videoyu oynatın", Toast.LENGTH_SHORT).show()
                         }
@@ -190,13 +190,18 @@ fun BrowserScreen(
                                         }
                                     }
                                     Button(onClick = {
-                                        val urlToDownload = detectedVideoUrl ?: currentUrl
+                                        val urlToDownload = detectedVideoUrl?.url ?: currentUrl
+                                        val finalHeaders = detectedVideoUrl?.headers?.toMutableMap() ?: mutableMapOf()
+                                        if (!detectedVideoUrl?.cookies.isNullOrEmpty()) {
+                                            finalHeaders["Cookie"] = detectedVideoUrl!!.cookies
+                                        }
+
                                         viewModel.startDownload(
                                             workManager = androidx.work.WorkManager.getInstance(context),
                                             url = urlToDownload,
                                             formatId = format.formatId,
                                             title = "Video_${System.currentTimeMillis()}",
-                                            headers = if (detectedVideoUrl != null) viewModel.lastDetectedHeaders else emptyMap()
+                                            headers = finalHeaders
                                         )
                                         Toast.makeText(context, "Download started", Toast.LENGTH_SHORT).show()
                                         showBottomSheet = false
