@@ -3,7 +3,16 @@
     window.__CaptureInjected = true;
 
     function reportMedia(url, type, headers = {}, method = "GET", source = "unknown") {
-        if (!url || !url.startsWith("http")) return;
+        if (!url) return;
+        
+        try {
+            if (!url.startsWith("http") && !url.startsWith("blob:")) {
+                url = new URL(url, window.location.href).href;
+            }
+        } catch (e) {
+            return; // Invalid URL
+        }
+        
         var isMedia = url.includes(".m3u8") || url.includes(".mp4") || url.includes(".ts") || 
                       url.includes(".m4s") || url.includes(".mpd") || url.includes(".m4a");
         

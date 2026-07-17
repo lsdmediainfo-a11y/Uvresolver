@@ -50,6 +50,8 @@ fun BrowserScreen(
         )
     )
 
+    val qualityOptions by viewModel.qualityOptions.collectAsState()
+
     Scaffold(
         topBar = {
             Column {
@@ -137,11 +139,11 @@ fun BrowserScreen(
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Yakalanan Videolar", style = MaterialTheme.typography.titleLarge)
                     Spacer(modifier = Modifier.height(16.dp))
-                    currentSession?.activeEvents?.filter { !it.isAd }?.forEach { event ->
+                    currentSession?.activeEvents?.filter { !it.isAd }?.sortedByDescending { it.score }?.forEach { event ->
                         Card(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                             onClick = {
-                                viewModel.startDownload(event, context)
+                                viewModel.parseAndShowQualities(event, context)
                                 showBottomSheet = false
                             }
                         ) {
@@ -157,6 +159,35 @@ fun BrowserScreen(
                     Spacer(modifier = Modifier.height(32.dp))
                 }
             }
+        }
+
+        if (qualityOptions.isNotEmpty()) {
+            AlertDialog(
+                onDismissRequest = { viewModel.clearQualityOptions() },
+                title = { Text("Kalite Seçimi") },
+                text = {
+                    Column {
+                        qualityOptions.forEach { variant ->
+                            TextButton(
+                                onClick = {
+                                    viewModel.startDownload(variant.originalEvent, variant.url, context)
+                                    viewModel.clearQualityOptions()
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                val resText = variant.resolution ?: "Bilinmeyen Çözünürlük"
+                                val bwText = variant.bandwidth?.let { "${it / 1000} kbps" } ?: ""
+                                Text("$resText $bwText")
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.clearQualityOptions() }) {
+                        Text("İptal")
+                    }
+                }
+            )
         }
     }
 }

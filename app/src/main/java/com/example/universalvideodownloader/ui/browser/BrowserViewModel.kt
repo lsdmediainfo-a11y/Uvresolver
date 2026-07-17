@@ -10,6 +10,19 @@ import javax.inject.Inject
 import com.example.universalvideodownloader.ui.browser.capture.CaptureManager
 import com.example.universalvideodownloader.ui.browser.capture.CapturedNetworkEvent
 import com.example.universalvideodownloader.ui.browser.capture.PlaybackCaptureSession
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.net.URL
+
+data class HlsVariant(
+    val originalEvent: CapturedNetworkEvent,
+    val url: String,
+    val resolution: String?,
+    val bandwidth: Int?
+)
 
 @HiltViewModel
 class BrowserViewModel @Inject constructor(
@@ -35,6 +48,11 @@ class BrowserViewModel @Inject constructor(
     val canGoForward: StateFlow<Boolean> = _canGoForward.asStateFlow()
 
     val currentSession: StateFlow<PlaybackCaptureSession?> = captureManager.currentSession
+    
+    private val okHttpClient = OkHttpClient()
+    
+    private val _qualityOptions = MutableStateFlow<List<HlsVariant>>(emptyList())
+    val qualityOptions: StateFlow<List<HlsVariant>> = _qualityOptions.asStateFlow()
 
     fun updateInputUrl(newUrl: String) {
         _inputUrl.value = newUrl
@@ -78,12 +96,62 @@ class BrowserViewModel @Inject constructor(
         captureManager.onEventCaptured(event)
     }
 
-    fun startDownload(event: CapturedNetworkEvent, context: android.content.Context) {
+    fun parseAndShowQualities(event: CapturedNetworkEvent, context: android.content.Context) {
+        if (!event.url.contains(".m3u8")) {
+            startDownload(event, event.url, context)
+            return
+        }
+        
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val request = Request.Builder().url(event.url).build()
+                val response = okHttpClient.newCall(request).execute()
+                val body = response.body?.string() ?: ""
+                
+                if (body.contains("#EXT-X-STREAM-INF")) {
+                    val lines = body.lines()
+                    val variants = mutableListOf<HlsVariant>()
+                    var currentResolution: String? = null
+                    var currentBandwidth: Int? = null
+                    
+                    for (line in lines) {
+                        if (line.startsWith("#EXT-X-STREAM-INF")) {
+                            val resMatch = Regex("RESOLUTION=(\\d+x\\d+)").find(line)
+                            val bwMatch = Regex("BANDWIDTH=(\\d+)").find(line)
+                            currentResolution = resMatch?.groupValues?.get(1)
+                            currentBandwidth = bwMatch?.groupValues?.get(1)?.toIntOrNull()
+                        } else if (!line.startsWith("#") && line.trim().isNotEmpty()) {
+                            val variantUrl = if (line.startsWith("http")) line else URL(URL(event.url), line).toString()
+                            variants.add(HlsVariant(event, variantUrl, currentResolution, currentBandwidth))
+                            currentResolution = null
+                            currentBandwidth = null
+                        }
+                    }
+                    _qualityOptions.value = variants
+                } else {
+                    withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        startDownload(event, event.url, context)
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    startDownload(event, event.url, context)
+                }
+            }
+        }
+    }
+
+    fun clearQualityOptions() {
+        _qualityOptions.value = emptyList()
+    }
+
+    fun startDownload(event: CapturedNetworkEvent, variantUrl: String, context: android.content.Context) {
         val workManager = androidx.work.WorkManager.getInstance(context)
         val data = androidx.work.workDataOf(
             "CANDIDATE_ID" to event.url.hashCode().toString(),
-            "VIDEO_URL" to event.url,
-            "TYPE" to if (event.url.contains(".m3u8")) "HLS" else "MP4"
+            "VIDEO_URL" to variantUrl,
+            "TYPE" to if (event.url.contains(".m3u8") || variantUrl.contains(".m3u8")) "HLS" else "MP4"
         )
         val request = androidx.work.OneTimeWorkRequestBuilder<com.example.universalvideodownloader.data.download.VideoDownloadWorker>()
             .setInputData(data)
