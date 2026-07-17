@@ -122,12 +122,12 @@ fun BrowserScreen(
                         
                         webChromeClient = WebChromeClient()
                         webViewClient = SniffingWebViewClient(
-                            onVideoDetected = { url ->
+                            onVideoDetected = { url, headers ->
                                 // This is called from a background thread inside WebViewClient,
                                 // but StateFlow handles thread safety. However, updating ViewModels
                                 // is generally fine since StateFlow emits on whatever thread, but
                                 // compose collects it properly.
-                                viewModel.onVideoDetected(url)
+                                viewModel.onVideoDetected(url, headers)
                             }
                         )
                         loadUrl(currentUrl)
