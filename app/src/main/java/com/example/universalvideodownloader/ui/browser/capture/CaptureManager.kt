@@ -24,19 +24,30 @@ class CaptureManager @Inject constructor() {
         _currentSession.update { session ->
             if (session == null) return@update null
             
-            // Scoring
+            // Filtering Rule 1: Ad words
             val urlLower = event.url.lowercase()
+            if (urlLower.contains("luxbet") || urlLower.contains("zulam") || 
+                urlLower.contains("grandmay") || urlLower.contains("exonmay") ||
+                urlLower.contains("vast") || urlLower.contains("vpaid") || 
+                urlLower.contains("midroll") || urlLower.contains("preroll") || 
+                urlLower.contains("adserver") || urlLower.contains("promo")) {
+                return@update session // Ignore this event completely
+            }
+
+            // Filtering Rule 1.1: Strict m3u8 check
+            if (urlLower.contains(".m3u8")) {
+                if (!urlLower.contains("master") && !urlLower.contains("index")) {
+                    return@update session // Ignore ts chunk playlists, only keep main manifests
+                }
+            }
+            
+            // Scoring
             var score = 0
             if (urlLower.contains(".m3u8") || urlLower.contains(".mpd") || urlLower.contains(".mp4")) score += 50
             if (event.source == "play_event") score += 40
             
-            if (urlLower.contains("vast") || urlLower.contains("vpaid") || urlLower.contains("midroll") || 
-                urlLower.contains("preroll") || urlLower.contains("adserver") || urlLower.contains("promo")) {
-                score -= 100
-            }
-            
             event.score = score
-            event.isAd = score < 0
+            event.isAd = false
             
             // Deduplication (Aynı tür ve URL'ye sahip etkinlikleri ekleme)
             val exists = session.activeEvents.any { it.url == event.url }

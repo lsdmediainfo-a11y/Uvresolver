@@ -120,8 +120,13 @@ class BrowserViewModel @Inject constructor(
                         requestBuilder.addHeader(key, headerJson.getString(key))
                     }
                 } catch (e: Exception) {
-                    requestBuilder.addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64 AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36)")
+                    // Ignore JSON parse error
                 }
+                
+                // Rule 2: Always add User-Agent and Referer
+                requestBuilder.header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64 AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36)")
+                val currentPageUrl = currentSession.value?.pageUrl ?: _url.value
+                requestBuilder.header("Referer", currentPageUrl)
 
                 val request = requestBuilder.build()
                 val response = okHttpClient.newCall(request).execute()
