@@ -1,10 +1,18 @@
 package com.sekerkirrma.rs.ui.browser
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.sekerkirrma.rs.domain.model.VideoFormatItem
+import com.yausername.youtubedl_android.YoutubeDL
+import com.yausername.youtubedl_android.YoutubeDLRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import android.util.Log
 import javax.inject.Inject
 
 @HiltViewModel
@@ -15,6 +23,15 @@ class BrowserViewModel @Inject constructor() : ViewModel() {
 
     private val _detectedVideoUrl = MutableStateFlow<String?>(null)
     val detectedVideoUrl: StateFlow<String?> = _detectedVideoUrl.asStateFlow()
+
+    private val _isParsing = MutableStateFlow(false)
+    val isParsing: StateFlow<Boolean> = _isParsing.asStateFlow()
+
+    private val _videoFormats = MutableStateFlow<List<VideoFormatItem>>(emptyList())
+    val videoFormats: StateFlow<List<VideoFormatItem>> = _videoFormats.asStateFlow()
+    
+    private val _parseError = MutableStateFlow<String?>(null)
+    val parseError: StateFlow<String?> = _parseError.asStateFlow()
 
     fun updateCurrentUrl(url: String) {
         // Simple URL validation/formatting
@@ -37,5 +54,59 @@ class BrowserViewModel @Inject constructor() : ViewModel() {
 
     fun clearDetectedVideo() {
         _detectedVideoUrl.value = null
+        _videoFormats.value = emptyList()
+        _parseError.value = null
+    }
+
+    fun parseVideoUrl(url: String) {
+        viewModelScope.launch {
+            _isParsing.value = true
+            _parseError.value = null
+            _videoFormats.value = emptyList()
+
+            try {
+                withContext(Dispatchers.IO) {
+                    val request = YoutubeDLRequest(url)
+                    val info = YoutubeDL.getInstance().getInfo(request)
+                    
+                    val parsedFormats = info.formats?.mapNotNull { format ->
+                        if (format.formatId == null) return@mapNotNull null
+                        
+                        val resolution = if (format.width != 0 && format.height != 0) {
+                            "${format.width}x${format.height}"
+                        } else if (format.formatNote != null) {
+                            format.formatNote
+                        } else {
+                            "Unknown"
+                        }
+
+                        val ext = format.ext ?: "unknown"
+                        val sizeStr = if (format.fileSize > 0) {
+                            "${format.fileSize / (1024 * 1024)} MB"
+                        } else {
+                            "~"
+                        }
+                        
+                        val isAudioOnly = format.vcodec == "none"
+
+                        VideoFormatItem(
+                            formatId = format.formatId!!,
+                            resolution = resolution!!,
+                            ext = ext,
+                            fileSizeStr = sizeStr,
+                            fps = format.fps.takeIf { it > 0.0 },
+                            isAudioOnly = isAudioOnly
+                        )
+                    }?.distinctBy { it.resolution + it.ext } ?: emptyList()
+
+                    _videoFormats.value = parsedFormats
+                }
+            } catch (e: Exception) {
+                Log.e("BrowserViewModel", "Error parsing url: $url", e)
+                _parseError.value = e.message ?: "Unknown error occurred"
+            } finally {
+                _isParsing.value = false
+            }
+        }
     }
 }
