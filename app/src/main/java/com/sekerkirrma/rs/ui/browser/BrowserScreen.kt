@@ -46,15 +46,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import android.webkit.JavascriptInterface
+import androidx.compose.runtime.LaunchedEffect
 import androidx.hilt.navigation.compose.hiltViewModel
-
-class VideoJavascriptInterface(private val onVideoFound: (String) -> Unit) {
-    @JavascriptInterface
-    fun onVideoFound(url: String) {
-        onVideoFound(url)
-    }
-}
+import com.sekerkirrma.rs.domain.extractor.ExtractorDelegate
+import com.sekerkirrma.rs.domain.extractor.VideoInterceptor
 
 @SuppressLint("SetJavaScriptEnabled")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -68,6 +63,12 @@ fun BrowserScreen(
     var textInput by remember { mutableStateOf(currentUrl) }
     var showBottomSheet by remember { mutableStateOf(false) }
     val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        ExtractorDelegate.mediaFlow.collect { signal ->
+            viewModel.onVideoDetected(signal.url, signal.headers)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -129,18 +130,7 @@ fun BrowserScreen(
                         settings.mediaPlaybackRequiresUserGesture = false
                         
                         webChromeClient = WebChromeClient()
-                        webViewClient = SniffingWebViewClient(
-                            onVideoDetected = { url, headers ->
-                                viewModel.onVideoDetected(url, headers)
-                            }
-                        )
-                        addJavascriptInterface(
-                            VideoJavascriptInterface { url ->
-                                // Trigger video detected from JS injection
-                                viewModel.onVideoDetected(url, emptyMap())
-                            },
-                            "AndroidSniffer"
-                        )
+                        webViewClient = VideoInterceptor()
                         loadUrl(currentUrl)
                     }
                 },

@@ -13,7 +13,7 @@ import com.yausername.youtubedl_android.YoutubeDLRequest
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import com.sekerkirrma.rs.domain.sniffer.OkHttpDownloader
-import com.sekerkirrma.rs.domain.sniffer.M3u8Downloader
+
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -70,37 +70,6 @@ class DownloadWorker @AssistedInject constructor(
                     outputPath = finalPath,
                     onProgress = { currentProgress ->
                         Log.d("DownloadWorker", "Direct Progress: $currentProgress%")
-                        kotlinx.coroutines.runBlocking {
-                            downloadDao.updateProgress(downloadId, currentProgress, 0L, 0L)
-                        }
-                    }
-                )
-            } else if (formatId == "direct" && url.contains(".m3u8")) {
-                Log.d("DownloadWorker", "Using M3u8Downloader for direct HLS stream")
-                finalPath = File(downloadDir, "$safeTitle.mp4").absolutePath
-                
-                M3u8Downloader.downloadM3u8(
-                    context = appContext,
-                    playlistUrl = url,
-                    headers = headerMap,
-                    outputPath = finalPath,
-                    onProgress = { currentProgress ->
-                        kotlinx.coroutines.runBlocking {
-                            downloadDao.updateProgress(downloadId, currentProgress, 0L, 0L)
-                        }
-                    }
-                )
-            } else if (formatId.startsWith("m3u8_custom|")) {
-                val targetUrl = formatId.substringAfter("|")
-                Log.d("DownloadWorker", "Using M3u8Downloader for custom HLS stream: $targetUrl")
-                finalPath = File(downloadDir, "$safeTitle.mp4").absolutePath
-                
-                M3u8Downloader.downloadM3u8(
-                    context = appContext,
-                    playlistUrl = targetUrl,
-                    headers = headerMap,
-                    outputPath = finalPath,
-                    onProgress = { currentProgress ->
                         kotlinx.coroutines.runBlocking {
                             downloadDao.updateProgress(downloadId, currentProgress, 0L, 0L)
                         }
