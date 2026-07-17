@@ -94,7 +94,7 @@ class BrowserViewModel @Inject constructor(
                                 val resolution = if (format.width != 0 && format.height != 0) {
                                     "${format.width}x${format.height}"
                                 } else if (format.formatNote != null) {
-                                    format.formatNote
+                                    format.formatNote ?: "Unknown"
                                 } else {
                                     "Unknown"
                                 }

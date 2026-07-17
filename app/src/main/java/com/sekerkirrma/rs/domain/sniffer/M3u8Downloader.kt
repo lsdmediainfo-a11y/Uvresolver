@@ -156,7 +156,11 @@ object M3u8Downloader {
         val basePath = base.substringBeforeLast("/")
         return if (path.startsWith("/")) {
             // Root relative
-            val host = base.substringBefore("/", base.indexOf("://") + 3)
+            val host = try {
+                java.net.URL(base).let { "${it.protocol}://${it.host}" }
+            } catch (e: Exception) {
+                base.substring(0, base.indexOf("/", base.indexOf("://") + 3).takeIf { it > 0 } ?: base.length)
+            }
             "$host$path"
         } else {
             "$basePath/$path"
