@@ -1,6 +1,5 @@
 package com.sekerkirrma.rs
 
-import android.app.Application
 import android.util.Log
 import androidx.work.Configuration
 import androidx.hilt.work.HiltWorkerFactory
@@ -8,10 +7,13 @@ import com.yausername.ffmpeg.FFmpeg
 import com.yausername.youtubedl_android.YoutubeDL
 import com.yausername.youtubedl_android.YoutubeDLException
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltAndroidApp
-class AuraApp : Application(), Configuration.Provider {
+class AuraApp : android.app.Application(), Configuration.Provider {
 
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
@@ -27,12 +29,18 @@ class AuraApp : Application(), Configuration.Provider {
     }
 
     private fun initYoutubeDL() {
-        try {
-            YoutubeDL.getInstance().init(this)
-            FFmpeg.getInstance().init(this)
-            Log.d("AuraApp", "YoutubeDL and FFmpeg initialized successfully.")
-        } catch (e: YoutubeDLException) {
-            Log.e("AuraApp", "Failed to initialize YoutubeDL/FFmpeg", e)
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                Log.d("AuraApp", "Starting YoutubeDL and FFmpeg initialization...")
+                YoutubeDL.getInstance().init(this@AuraApp)
+                Log.d("AuraApp", "YoutubeDL initialized successfully.")
+                FFmpeg.getInstance().init(this@AuraApp)
+                Log.d("AuraApp", "FFmpeg initialized successfully.")
+            } catch (e: YoutubeDLException) {
+                Log.e("AuraApp", "Failed to initialize YoutubeDL/FFmpeg", e)
+            } catch (e: Exception) {
+                Log.e("AuraApp", "Unknown error during YoutubeDL/FFmpeg init", e)
+            }
         }
     }
 }
