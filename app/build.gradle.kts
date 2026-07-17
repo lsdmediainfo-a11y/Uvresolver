@@ -102,8 +102,8 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer-dash:1.1.1")
     implementation("androidx.media3:media3-ui:1.1.1")
 
-    // FFmpegKit for HLS downloading and muxing
-    implementation("com.arthenica:ffmpeg-kit-min:6.0-2")
+    // RxFFmpeg for HLS downloading and muxing
+    implementation("com.github.microshow:RxFFmpeg:4.9.0-lite")
 
     // Tests
     testImplementation("junit:junit:4.13.2")

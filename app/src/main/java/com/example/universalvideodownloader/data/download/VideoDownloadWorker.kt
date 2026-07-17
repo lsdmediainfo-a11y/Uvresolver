@@ -121,22 +121,20 @@ class VideoDownloadWorker @AssistedInject constructor(
             Log.e("DownloadWorker", "Master playlist fetch error, falling back to original URL", e)
         }
 
-        Log.d("DownloadWorker", "FFmpegKit HLS İndirme Başlıyor: $targetUrl")
+        Log.d("DownloadWorker", "RxFFmpeg HLS İndirme Başlıyor: $targetUrl")
         
         val command = if (headerString.isNotEmpty()) {
-            arrayOf("-headers", headerString, "-i", targetUrl, "-c", "copy", "-bsf:a", "aac_adtstoasc", "-y", outputFile.absolutePath)
+            arrayOf("ffmpeg", "-headers", headerString, "-i", targetUrl, "-c", "copy", "-bsf:a", "aac_adtstoasc", "-y", outputFile.absolutePath)
         } else {
-            arrayOf("-i", targetUrl, "-c", "copy", "-bsf:a", "aac_adtstoasc", "-y", outputFile.absolutePath)
+            arrayOf("ffmpeg", "-i", targetUrl, "-c", "copy", "-bsf:a", "aac_adtstoasc", "-y", outputFile.absolutePath)
         }
 
-        val session = com.arthenica.ffmpegkit.FFmpegKit.executeWithArguments(command)
+        val returnCode = io.microshow.rxffmpeg.RxFFmpegInvoke.getInstance().runCommand(command, null)
         
-        if (com.arthenica.ffmpegkit.ReturnCode.isSuccess(session.returnCode)) {
-            Log.d("DownloadWorker", "FFmpegKit HLS İndirme Başarılı")
+        if (returnCode == 0) {
+            Log.d("DownloadWorker", "RxFFmpeg HLS İndirme Başarılı")
         } else {
-            val failCause = session.failStackTrace
-            val logs = session.logsAsString
-            throw Exception("FFmpegKit HLS İndirme Başarısız: $logs\n$failCause")
+            throw Exception("RxFFmpeg HLS İndirme Başarısız: Code $returnCode")
         }
     }
 
